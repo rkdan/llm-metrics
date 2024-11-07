@@ -8,7 +8,7 @@ from .base import Loggable, Metrics
 
 
 class Perplexity(Loggable):
-    """Collection of metric decorators for model response analysis."""
+    """Perplexity metric implementation."""
 
     def __init__(
         self,
@@ -17,12 +17,12 @@ class Perplexity(Loggable):
         experiment_name: str = "experiment",
         **kwargs
     ):
-        """Initialize the Metrics class.
+        """Initialize the Perplexity metric.
 
         Args:
-            log (bool, optional): Whether to log metrics. Defaults to True.
-            output_dir (str, optional): Directory for log files. Defaults to "./logs".
-            experiment_name (str, optional): Name of experiment. Defaults to "experiment".
+            log (bool, optional): To log or not to log? Defaults to True.
+            output_dir (str, optional): Where to log. Defaults to "./logs".
+            experiment_name (str, optional): What to log. Defaults to "experiment".
         """
         super().__init__(
             log=log,
@@ -31,13 +31,13 @@ class Perplexity(Loggable):
         )
 
     def __call__(self, func: Callable) -> Callable:
-        """Decorator to calculate and log perplexity of model responses.
+        """Decorator to calculate and log perplexity scores.
 
         Args:
-            func (Callable): The function to decorate.
+            func (Callable): Function to decorate
 
         Returns:
-            Callable: The wrapped function that includes perplexity calculation.
+            Callable: Decorated function
         """
 
         @functools.wraps(func)
@@ -105,7 +105,7 @@ class Perplexity(Loggable):
 
 
 class GenerativeMetrics(Metrics):
-    """Factory class for similarity metrics with list-style decoration."""
+    """Factory class for generative metrics with list-style decoration."""
 
     def __init__(
         self,
@@ -114,6 +114,13 @@ class GenerativeMetrics(Metrics):
         experiment_name: str = "experiment",
         **kwargs
     ):
+        """Initialize the GenerativeMetrics factory.
+
+        Args:
+            log (bool, optional): To log or not to log? Defaults to True.
+            output_dir (str, optional): Where to log? Defaults to "./logs".
+            experiment_name (str, optional): What to log? Defaults to "experiment".
+        """
         super().__init__(
             log=log,
             output_dir=output_dir,

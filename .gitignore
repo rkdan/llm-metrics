@@ -4,3 +4,5 @@ testvenv/
 testing.ipynb
 logs/
 __pycache__/
+.mypy_cache/
+.DS_Store

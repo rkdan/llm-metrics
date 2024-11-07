@@ -28,12 +28,13 @@ class Loggable:
     def _write_log(
         self, log_type: str, data: dict, metric_category: Optional[str] = None
     ):
-        """_summary_
+        """Write a log entry to a JSONL file.
 
         Args:
-            log_type (str): _description_
-            data (dict): _description_
-            metric_category (str, optional): _description_. Defaults to None.
+            log_type (str): Type of log entry (e.g. "latency", "bleu", "perplexity")
+            data (dict): Log entry data
+            metric_category (str, optional): Metric category
+                ["system", "generative", "similarity"]. Defaults to None.
         """
         if metric_category:
             # For metrics, use metrics/category/type.jsonl
@@ -77,7 +78,18 @@ class Metrics:
         self._metrics = {}  # type: dict[str, Callable]
 
     def __call__(self, metrics: str | list[str]) -> Callable:
-        """Enable decorator syntax with list of metrics."""
+        """Enable metrics for a function.
+
+        Args:
+            metrics (str | list[str]): List of metrics to enable.
+
+        Raises:
+            ValueError: At least one metric must be specified
+            ValueError: Unknown metric entered
+
+        Returns:
+            Callable: Decorated function
+        """
         if isinstance(metrics, str):
             metrics = [metrics]
 
