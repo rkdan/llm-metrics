@@ -1,18 +1,18 @@
-import json
 import time
 import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Optional
 
 import dotenv
 import yaml
 from openai import OpenAI
 
+from .base import Loggable
+
 dotenv.load_dotenv()
 
 
-class OpenAIWrapper:
+class OpenAIWrapper(Loggable):
     """A simple wrapper for the OpenAI API with usage tracking."""
 
     def __init__(
@@ -20,8 +20,8 @@ class OpenAIWrapper:
         log=True,
         output_dir: str = "./logs",
         experiment_name: str = "experiment",
-        api_key: Optional[str] = None,
         costs_dir: Optional[str] = None,
+        **kwargs
     ):
         """Wrapper for the OpenAI API with usage tracking.
 
@@ -32,20 +32,19 @@ class OpenAIWrapper:
             api_key (Optional[str], optional): _description_. Defaults to None.
             costs_dir (Optional[str], optional): _description_. Defaults to None.
         """
-        self.client = OpenAI(api_key=api_key)
+        super().__init__(
+            log=log,
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+        )
+
+        self.client = OpenAI()
 
         self.log = log
 
         if self.log:
             self.conversation_id = str(uuid.uuid4())
-            self.session_start = datetime.now()
-            self.experiment_name = experiment_name
 
-            # Create session directory using date and UUID
-            date_str = self.session_start.strftime("%Y-%m-%d")
-            self.session_dir = Path(output_dir) / self.experiment_name / date_str
-            self.session_dir.mkdir(parents=True, exist_ok=True)
-            # load costs yaml
             if costs_dir:
                 with open(costs_dir, "r") as f:
                     self.costs = yaml.safe_load(f)
@@ -53,7 +52,7 @@ class OpenAIWrapper:
                 self.costs = {}
 
     def _log_metadata(self):
-        """Log metadata about the session."""
+        """_summary_"""
         metadata = {
             "conversation_id": self.conversation_id,
             "session_start": self.session_start.isoformat(),
@@ -61,17 +60,19 @@ class OpenAIWrapper:
         }
         self._write_log("metadata", metadata)
 
-    def _write_log(self, log_type: str, data: dict):
-        """Write a log entry to the appropriate file."""
-        file_path = self.session_dir / f"{log_type}.jsonl"
-        with open(file_path, "a") as f:
-            json.dump(data, f)
-            f.write("\n")
-
     def _calculate_cost(
         self, model: str, prompt_tokens: int, completion_tokens: int
     ) -> dict[str, float]:
-        """Calculate the cost of the API call."""
+        """_summary_
+
+        Args:
+            model (str): _description_
+            prompt_tokens (int): _description_
+            completion_tokens (int): _description_
+
+        Returns:
+            dict[str, float]: _description_
+        """
         model_cost = self.costs.get(model, {"input": 0, "output": 0})
         input_cost = model_cost["input"] * prompt_tokens / 1000.0
         output_cost = model_cost["output"] * completion_tokens / 1000.0

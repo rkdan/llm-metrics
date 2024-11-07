@@ -1,49 +1,25 @@
 import functools
-import json
 import time
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Callable
 
+from .base import Loggable, Metrics
 
-class LatencyLogger:
-    """A decorator class for logging function execution times."""
 
+class Latency(Loggable):
     def __init__(
         self,
         log: bool = True,
         output_dir: str = "./logs",
         experiment_name: str = "experiment",
+        **kwargs
     ):
-        """
-        Initialize the latency logger.
-
-        Args:
-            log: Whether to enable logging (default: True)
-            output_dir: Directory where logs will be stored (default: './logs')
-            experiment_name: Optional name for this experiment
-        """
-        self.log = log
-
-        if self.log:
-            self.session_start = datetime.now()
-            self.experiment_name = experiment_name
-
-            date_str = self.session_start.strftime("%Y-%m-%d")
-            self.session_dir = Path(output_dir) / self.experiment_name / date_str
-            self.session_dir.mkdir(parents=True, exist_ok=True)
+        # Call parent class constructor
+        super().__init__(
+            log=log, output_dir=output_dir, experiment_name=experiment_name
+        )
 
     def __call__(self, func: Callable) -> Callable:
-        """
-        Decorator that wraps a function and logs its execution time.
-
-        Args:
-            func: The function to be wrapped
-
-        Returns:
-            Wrapped function that logs execution time
-        """
-
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             start_time = time.time()
@@ -90,9 +66,28 @@ class LatencyLogger:
 
         return wrapper
 
-    def _write_log(self, log_type: str, data: dict):
-        """Write a log entry to the appropriate file."""
-        file_path = self.session_dir / f"{log_type}.jsonl"
-        with open(file_path, "a") as f:
-            json.dump(data, f)
-            f.write("\n")
+
+class SystemMetrics(Metrics):
+    """Factory class for similarity metrics with list-style decoration."""
+
+    def __init__(
+        self,
+        log: bool = True,
+        output_dir: str = "./logs",
+        experiment_name: str = "experiment",
+        **kwargs
+    ):
+        super().__init__(
+            log=log,
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+        )
+
+        # Initialize basic metrics
+        self._latency = Latency(
+            log=log, output_dir=output_dir, experiment_name=experiment_name
+        )
+
+        self._metrics = {
+            "latency": lambda: self._latency,
+        }

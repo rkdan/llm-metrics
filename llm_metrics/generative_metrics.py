@@ -1,13 +1,13 @@
 import functools
-import json
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 
+from .base import Loggable, Metrics
 
-class Metrics:
+
+class Perplexity(Loggable):
     """Collection of metric decorators for model response analysis."""
 
     def __init__(
@@ -15,52 +15,39 @@ class Metrics:
         log: bool = True,
         output_dir: str = "./logs",
         experiment_name: str = "experiment",
+        **kwargs
     ):
-        """
-        Initialize the metrics collection.
+        """Initialize the Metrics class.
 
         Args:
-            log: Whether to enable logging (default: True)
-            output_dir: Directory where logs will be stored (default: './logs')
-            experiment_name: Optional name for this experiment
+            log (bool, optional): Whether to log metrics. Defaults to True.
+            output_dir (str, optional): Directory for log files. Defaults to "./logs".
+            experiment_name (str, optional): Name of experiment. Defaults to "experiment".
         """
-        self.log = log
+        super().__init__(
+            log=log,
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+        )
 
-        if self.log:
-            self.session_start = datetime.now()
-            self.experiment_name = experiment_name
-
-            date_str = self.session_start.strftime("%Y-%m-%d")
-            self.session_dir = Path(output_dir) / self.experiment_name / date_str
-            self.session_dir.mkdir(parents=True, exist_ok=True)
-
-    def _write_log(self, metric_name: str, data: dict):
-        """Write a metric log entry to the appropriate file."""
-        file_path = self.session_dir / f"metric_{metric_name}.jsonl"
-        with open(file_path, "a") as f:
-            json.dump(data, f)
-            f.write("\n")
-
-    def perplexity(self, func: Callable) -> Callable:
-        """
-        Decorator that calculates and logs perplexity of model responses.
+    def __call__(self, func: Callable) -> Callable:
+        """Decorator to calculate and log perplexity of model responses.
 
         Args:
-            func: The function to be wrapped
+            func (Callable): The function to decorate.
 
         Returns:
-            Wrapped function that logs perplexity
+            Callable: The wrapped function that includes perplexity calculation.
         """
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             try:
-                # Call the original function
                 result = func(*args, **kwargs)
 
                 if self.log:
                     try:
-                        # Try to calculate perplexity if logprobs are available
+
                         logprobs = [
                             token.logprob
                             for token in result.choices[0].logprobs.content
@@ -80,9 +67,9 @@ class Metrics:
                                 "perplexity": perplexity,
                                 "success": True,
                             },
+                            metric_category="generative",
                         )
                     except AttributeError:
-                        # Log if logprobs weren't available
                         self._write_log(
                             "perplexity",
                             {
@@ -93,6 +80,7 @@ class Metrics:
                                 "success": True,
                                 "note": "logprobs not available in response",
                             },
+                            metric_category="generative",
                         )
 
                 return result
@@ -109,7 +97,35 @@ class Metrics:
                             "error_type": type(e).__name__,
                             "error_message": str(e),
                         },
+                        metric_category="generative",
                     )
                 raise
 
         return wrapper
+
+
+class GenerativeMetrics(Metrics):
+    """Factory class for similarity metrics with list-style decoration."""
+
+    def __init__(
+        self,
+        log: bool = True,
+        output_dir: str = "./logs",
+        experiment_name: str = "experiment",
+        **kwargs
+    ):
+        super().__init__(
+            log=log,
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+        )
+
+        # Initialize basic metrics
+        self._perplexity = Perplexity(
+            log=log, output_dir=output_dir, experiment_name=experiment_name
+        )
+
+        # Mapping of metric names to their implementations
+        self._metrics = {
+            "perplexity": lambda: self._perplexity,
+        }
