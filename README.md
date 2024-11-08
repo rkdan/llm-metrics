@@ -1,3 +1,5 @@
+LLM Metrics
+
 * OpenAIWrapper
     - Token usage and cost tracking
 * General metrics:
@@ -12,7 +14,7 @@
     - Average sentence length
     - Named entity usage
     - Toxicity
-* Simulated metrics:
+* Simularity metrics:
     - ROUGE
     - BLEU
     - Cosine similarity
